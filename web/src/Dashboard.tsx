@@ -7,6 +7,7 @@ import {
   Status,
   Worker,
 } from "./api";
+import { InFlightDetail, RecordDetail } from "./RecordDetail";
 
 const POLL_MS = 5000;
 
@@ -20,6 +21,11 @@ export function Dashboard() {
   const [filterItem, setFilterItem] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expandedQueued, setExpandedQueued] = useState<string | null>(null);
+
+  const rowKey = (r: AuditRecord) =>
+    `${r.txid}-${r.output_pool}-${r.output_index}`;
 
   const refresh = useCallback(async () => {
     try {
@@ -144,7 +150,7 @@ export function Dashboard() {
 
       {inFlight.length > 0 && (
         <>
-          <div className="section-label">In flight</div>
+          <div className="section-label">Queued</div>
           <table className="records">
             <thead>
               <tr>
@@ -157,31 +163,49 @@ export function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {inFlight.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <span className={`chip ${s.status}`}>{s.status}</span>
-                  </td>
-                  <td>{s.kind}</td>
-                  <td>{s.worker_name ?? `#${s.user_index}`}</td>
-                  <td className="muted">{inFlightDetail(s)}</td>
-                  <td>
-                    {s.txid ? (
-                      <a
-                        className="txlink"
-                        href={explorerUrl(s.txid)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {s.txid.slice(0, 12)}…
-                      </a>
-                    ) : (
-                      <span className="muted">awaiting batch</span>
+              {inFlight.map((s) => {
+                const isOpen = expandedQueued === s.id;
+                return (
+                  <>
+                    <tr
+                      key={s.id}
+                      className={`record-row${isOpen ? " expanded" : ""}`}
+                      onClick={() => setExpandedQueued(isOpen ? null : s.id)}
+                      title="Click to expand"
+                    >
+                      <td>
+                        <span className={`chip ${s.status}`}>{s.status}</span>
+                      </td>
+                      <td>{s.kind}</td>
+                      <td>{s.worker_name ?? `#${s.user_index}`}</td>
+                      <td className="muted">{inFlightDetail(s)}</td>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        {s.txid ? (
+                          <a
+                            className="txlink"
+                            href={explorerUrl(s.txid)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {s.txid.slice(0, 12)}…
+                          </a>
+                        ) : (
+                          <span className="muted">awaiting batch</span>
+                        )}
+                        <span className="expand-hint">{isOpen ? " ▲" : " ▼"}</span>
+                      </td>
+                      <td className="muted">{fmtTime(s.created_at)}</td>
+                    </tr>
+                    {isOpen && (
+                      <InFlightDetail
+                        key={`qdetail-${s.id}`}
+                        submission={s}
+                        workers={workers}
+                      />
                     )}
-                  </td>
-                  <td className="muted">{fmtTime(s.created_at)}</td>
-                </tr>
-              ))}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </>
@@ -210,40 +234,53 @@ export function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {records.map((r) => (
-              <tr key={`${r.txid}-${r.item_id}-${r.block_height}-${r.user_index}`}>
-                <td>
-                  <span className="chip confirmed">confirmed</span>
-                </td>
-                <td className="mono">{r.block_height}</td>
-                <td className="muted">{r.block_time ? fmtTime(r.block_time) : "—"}</td>
-                <td>
-                  {r.worker_name ?? "—"}
-                  {r.worker_role && (
-                    <div className="muted" style={{ fontSize: "0.72rem" }}>
-                      {r.worker_role}
-                    </div>
-                  )}
-                </td>
-                <td className="mono">{r.item_id}</td>
-                <td>{r.event_type}</td>
-                <td>{r.quantity}</td>
-                <td className={r.temp_c > 8 || r.temp_c < 2 ? "temp-bad" : ""}>
-                  {r.temp_c.toFixed(1)}°C
-                </td>
-                <td className="muted">{r.notes || "—"}</td>
-                <td>
-                  <a
-                    className="txlink"
-                    href={explorerUrl(r.txid)}
-                    target="_blank"
-                    rel="noreferrer"
+            {records.map((r) => {
+              const key = rowKey(r);
+              const isOpen = expanded === key;
+              return (
+                <>
+                  <tr
+                    key={key}
+                    className={`record-row${isOpen ? " expanded" : ""}`}
+                    onClick={() => setExpanded(isOpen ? null : key)}
+                    title="Click to expand"
                   >
-                    {r.txid.slice(0, 12)}…
-                  </a>
-                </td>
-              </tr>
-            ))}
+                    <td>
+                      <span className="chip confirmed">confirmed</span>
+                    </td>
+                    <td className="mono">{r.block_height}</td>
+                    <td className="muted">{r.block_time ? fmtTime(r.block_time) : "—"}</td>
+                    <td>
+                      {r.worker_name ?? "—"}
+                      {r.worker_role && (
+                        <div className="muted" style={{ fontSize: "0.72rem" }}>
+                          {r.worker_role}
+                        </div>
+                      )}
+                    </td>
+                    <td className="mono">{r.item_id}</td>
+                    <td>{r.event_type}</td>
+                    <td>{r.quantity}</td>
+                    <td className={r.temp_c > 8 || r.temp_c < 2 ? "temp-bad" : ""}>
+                      {r.temp_c.toFixed(1)}°C
+                    </td>
+                    <td className="muted">{r.notes || "—"}</td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <a
+                        className="txlink"
+                        href={explorerUrl(r.txid)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {r.txid.slice(0, 12)}…
+                      </a>
+                      <span className="expand-hint">{isOpen ? " ▲" : " ▼"}</span>
+                    </td>
+                  </tr>
+                  {isOpen && <RecordDetail key={`detail-${key}`} record={r} />}
+                </>
+              );
+            })}
           </tbody>
         </table>
       )}

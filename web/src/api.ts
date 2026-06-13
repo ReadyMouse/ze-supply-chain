@@ -11,11 +11,14 @@ export type Worker = {
 
 export type AuditRecord = {
   txid: string;
+  output_pool: string;
+  output_index: number;
   block_height: number;
   block_time: string | null;
   worker_name: string | null;
   worker_role: string | null;
   user_index: number | null;
+  address: string | null;
   item_id: string;
   event_type: string;
   quantity: number;
@@ -126,6 +129,28 @@ export const api = {
       { method: "POST", body: JSON.stringify(body) },
     ),
   submission: (id: string) => request<Submission>(`/records/${id}`),
+  annotate: (r: AuditRecord | Record<string, unknown>) =>
+    request<Record<string, unknown>>("/records/annotate", {
+      method: "POST",
+      body: JSON.stringify(
+        "item_id" in r && "temp_c" in r
+          ? {
+              item_id: (r as AuditRecord).item_id,
+              event_type: (r as AuditRecord).event_type,
+              quantity: (r as AuditRecord).quantity,
+              temp_centi: Math.round((r as AuditRecord).temp_c * 100),
+              client_ts: (r as AuditRecord).block_time
+                ? Math.floor(new Date((r as AuditRecord).block_time!).getTime() / 1000)
+                : 0,
+              notes: (r as AuditRecord).notes,
+              user_index: (r as AuditRecord).user_index,
+              address: (r as AuditRecord).address ?? undefined,
+              worker_name: (r as AuditRecord).worker_name ?? undefined,
+              worker_role: (r as AuditRecord).worker_role ?? undefined,
+            }
+          : r,
+      ),
+    }),
   processBatch: () =>
     request<{ broadcast: { submission_id: string; txid: string }[] }>(
       "/admin/process-batch",

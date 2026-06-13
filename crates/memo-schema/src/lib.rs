@@ -65,6 +65,15 @@ impl EventType {
         }
     }
 
+    pub fn from_str(s: &str) -> Result<Self, SchemaError> {
+        match s {
+            "received" => Ok(EventType::Received),
+            "handoff" => Ok(EventType::Handoff),
+            "inspection" => Ok(EventType::Inspection),
+            other => Err(SchemaError::Malformed(format!("unknown event type {other:?}"))),
+        }
+    }
+
     pub fn from_u8(v: u8) -> Result<Self, SchemaError> {
         match v {
             0 => Ok(EventType::Received),

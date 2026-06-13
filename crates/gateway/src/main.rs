@@ -105,6 +105,7 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/workers", get(list_workers).post(create_worker))
         .route("/records", get(list_records).post(create_record))
+        .route("/records/annotate", post(annotate_record))
         .route("/records/{id}", get(get_record))
         .route("/admin/process-batch", post(process_batch))
         .route("/admin/rebuild", post(rebuild))
@@ -364,11 +365,14 @@ struct RecordFilters {
 #[derive(serde::Serialize)]
 struct AuditRecord {
     txid: String,
+    output_pool: String,
+    output_index: i32,
     block_height: i64,
     block_time: Option<String>,
     worker_name: Option<String>,
     worker_role: Option<String>,
     user_index: Option<i32>,
+    address: Option<String>,
     item_id: String,
     event_type: String,
     quantity: i64,
@@ -385,9 +389,9 @@ async fn list_records(
 
     let rows = client
         .query(
-            "SELECT ar.txid, ar.block_height, ar.block_time, ab.name, ab.role,
-                    ar.user_index, ar.item_id, ar.event_type, ar.quantity,
-                    ar.temp_centi, ar.notes
+            "SELECT ar.txid, ar.output_pool, ar.output_index, ar.block_height,
+                    ar.block_time, ab.name, ab.role, ar.user_index, ar.address,
+                    ar.item_id, ar.event_type, ar.quantity, ar.temp_centi, ar.notes
              FROM audit_records ar
              LEFT JOIN address_book ab ON ab.address = ar.address
              WHERE ($1::int IS NULL OR ar.user_index = $1)
@@ -403,16 +407,19 @@ async fn list_records(
         .iter()
         .map(|r| AuditRecord {
             txid: r.get(0),
-            block_height: r.get(1),
-            block_time: r.get::<_, Option<OffsetDateTime>>(2).map(ts),
-            worker_name: r.get(3),
-            worker_role: r.get(4),
-            user_index: r.get(5),
-            item_id: r.get(6),
-            event_type: r.get(7),
-            quantity: r.get(8),
-            temp_c: r.get::<_, i32>(9) as f64 / 100.0,
-            notes: r.get(10),
+            output_pool: r.get(1),
+            output_index: r.get::<_, i32>(2),
+            block_height: r.get(3),
+            block_time: r.get::<_, Option<OffsetDateTime>>(4).map(ts),
+            worker_name: r.get(5),
+            worker_role: r.get(6),
+            user_index: r.get(7),
+            address: r.get(8),
+            item_id: r.get(9),
+            event_type: r.get(10),
+            quantity: r.get(11),
+            temp_c: r.get::<_, i32>(12) as f64 / 100.0,
+            notes: r.get(13),
         })
         .collect();
 
@@ -448,6 +455,58 @@ async fn list_records(
         "confirmed": confirmed,
         "in_flight": pending,
     })))
+}
+
+/// Pure computation endpoint: re-encode any stored record's memo and return
+/// annotated under_the_hood data. Used by the dashboard expand view.
+#[derive(serde::Deserialize)]
+struct AnnotateReq {
+    // Event fields
+    item_id: Option<String>,
+    event_type: Option<String>,
+    quantity: Option<u32>,
+    temp_centi: Option<i32>,
+    client_ts: Option<u32>,
+    notes: Option<String>,
+    // Shared
+    user_index: Option<i32>,
+    address: Option<String>,
+    worker_name: Option<String>,
+    worker_role: Option<String>,
+}
+
+async fn annotate_record(
+    State(_state): State<AppState>,
+    Json(req): Json<AnnotateReq>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let user_index = req.user_index.unwrap_or(0);
+    let address = req.address.unwrap_or_default();
+    let name = req.worker_name.clone().unwrap_or_else(|| format!("worker-{user_index}"));
+    let role = req.worker_role.clone().unwrap_or_default();
+
+    let record = if let (Some(item_id), Some(et), Some(qty), Some(tc), Some(ts)) = (
+        req.item_id,
+        req.event_type,
+        req.quantity,
+        req.temp_centi,
+        req.client_ts,
+    ) {
+        let event_type = memo_schema::EventType::from_str(&et)
+            .map_err(|e| err(StatusCode::UNPROCESSABLE_ENTITY, e))?;
+        Record::Event(memo_schema::EventRecord {
+            item_id,
+            event_type,
+            quantity: qty,
+            temp_centi: tc,
+            client_ts: ts,
+            notes: req.notes.unwrap_or_default(),
+        })
+    } else {
+        Record::Enroll(memo_schema::EnrollRecord { name: name.clone(), role: role.clone() })
+    };
+
+    let hood = under_the_hood(&record, user_index, &address, &name, &role)?;
+    Ok(Json(hood))
 }
 
 async fn get_record(
