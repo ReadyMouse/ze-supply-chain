@@ -1,3 +1,20 @@
+/* Global Styles — ZE Supply Chain UI
+ *
+ *   Dark-theme CSS for the demo web app: layout shell, modals, audit table,
+ *   memo hex dump colour spans, and Zcash-gold accent palette.
+ *
+ * INPUT:
+ *   - CSS class names from React components
+ *
+ * OUTPUT:
+ *   - Styled Home, Dashboard, UnderTheHood, and modal UI
+ *
+ * NOTES:
+ *   Uses CSS custom properties (--accent gold, --panel backgrounds).
+ *
+ * Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+ */
+
 :root {
   --bg: #0c0f14;
   --panel: #141923;

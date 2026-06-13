@@ -1,3 +1,21 @@
+// Wallet Service — Entry Point
+//
+//   CLI and server bootstrap for the Zcash signer + indexer. Supports gen-seed
+//   subcommand and default serve mode with periodic indexer ticks.
+//
+// INPUT:
+//   - CLI args (gen-seed | serve)
+//   - Environment via config::Config::from_env()
+//
+// OUTPUT:
+//   - Running HTTP server on WALLET_SERVICE_ADDR (default 7001)
+//   - Printed BIP-39 seed when gen-seed is invoked
+//
+// NOTES:
+//   Indexer runs every 15s in a background task. Requires proprietary org seed.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 mod api;
 mod block_cache;
 mod config;

@@ -1,3 +1,21 @@
+// Chain Indexer — Wallet SQLite to Postgres Export
+//
+//   Reads trial-decrypted memos from the wallet sqlite store and upserts them
+//   into Postgres audit tables. Idempotent; safe to TRUNCATE and rebuild.
+//
+// INPUT:
+//   - wallet_db_path (read-only sqlite connection)
+//   - Postgres pool (address_book, audit_records, submissions)
+//
+// OUTPUT:
+//   - Upserted enrollment and event rows in Postgres
+//   - Submission status updates (pending → confirmed) matched by txid
+//
+// NOTES:
+//   Skips memos that fail decode (change outputs, foreign memos). Runs every 15s.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 //! Indexer: exports decrypted memos from the wallet's sqlite store into Postgres.
 //!
 //! The wallet db is the chain-derived source of truth (compact blocks were trial-

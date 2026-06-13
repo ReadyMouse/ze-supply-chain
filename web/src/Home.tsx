@@ -1,3 +1,20 @@
+// Home Page — Demo Transaction Actions
+//
+//   Landing page with New User, Log Temp, and Audit Dashboard entry points.
+//   Modals submit to gateway and display Under the Hood memo artifacts.
+//
+// INPUT:
+//   - onAudit callback to navigate to Dashboard
+//   - api workers/records endpoints
+//
+// OUTPUT:
+//   - Enrollment and event submissions with UnderTheHood artifact display
+//
+// NOTES:
+//   Log Temp requires at least one enrolled worker. Shows live memo hex dumps.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 import { useEffect, useState } from "react";
 import { api, Worker } from "./api";
 import { Artifact, UnderTheHoodSection } from "./UnderTheHood";

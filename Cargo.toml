@@ -1,3 +1,20 @@
+# Rust Workspace Manifest
+#
+#   Root Cargo.toml defining the ze-supply-chain monorepo: three crates
+#   (memo-schema, wallet-service, gateway) plus shared dependency versions.
+#
+# INPUT:
+#   - None at runtime; consumed by Cargo at build time
+#
+# OUTPUT:
+#   - Workspace member resolution and pinned dependency versions
+#
+# NOTES:
+#   Uses tokio-postgres instead of sqlx to avoid libsqlite3-sys conflicts
+#   with zcash_client_sqlite. Zcash crates are pinned to compatible versions.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 [workspace]
 resolver = "2"
 members = [

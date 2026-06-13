@@ -1,3 +1,20 @@
+// Under the Hood — Memo Construction Explainer
+//
+//   Educational UI explaining ZIP 32 identity, memo encoding, and audit rebuild.
+//   Renders post-submission artifacts with annotated hex dumps and tx polling.
+//
+// INPUT:
+//   - Artifact from Home modals (enroll or event UnderTheHood payload)
+//   - api.submission for pending → confirmed status polling
+//
+// OUTPUT:
+//   - Explainer copy, ArtifactView with memo hex, block explorer links
+//
+// NOTES:
+//   Designed for demo/judge visibility into exactly what goes on-chain.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 import { ReactElement, useEffect, useState } from "react";
 import { api, explorerUrl, Submission, UnderTheHood as Hood } from "./api";
 

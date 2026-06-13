@@ -1,3 +1,21 @@
+// Audit Dashboard
+//
+//   Reconstructed ledger view: confirmed on-chain records, in-flight submissions,
+//   wallet status, filters, Process Batch, and Rebuild from Chain admin actions.
+//
+// INPUT:
+//   - api.records, api.status, api.workers (polled every 5s)
+//   - User filter selections (worker, event type, item ID)
+//
+// OUTPUT:
+//   - Filterable audit table with expandable RecordDetail rows
+//   - Admin action feedback (batch broadcast, rebuild)
+//
+// NOTES:
+//   In-flight rows show pending/broadcast before indexer confirms on-chain.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 import { useCallback, useEffect, useState } from "react";
 import {
   api,

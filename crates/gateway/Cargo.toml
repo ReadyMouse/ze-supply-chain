@@ -1,3 +1,18 @@
+# Gateway Crate Manifest
+#
+#   Package metadata for the public API gateway binary (Axum + Postgres).
+#
+# INPUT:
+#   - None; Cargo build configuration
+#
+# OUTPUT:
+#   - gateway binary (port 7700 by default)
+#
+# NOTES:
+#   Depends on memo-schema for encode/validate; no Zcash key dependencies.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 [package]
 name = "gateway"
 version.workspace = true

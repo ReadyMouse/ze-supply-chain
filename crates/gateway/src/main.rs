@@ -1,3 +1,22 @@
+// API Gateway — Public HTTP Entry Point
+//
+//   Public-facing Axum server: validates records, manages workers/submissions
+//   in Postgres, and proxies wallet operations to wallet-service. Never sees keys.
+//
+// INPUT:
+//   - HTTP requests (workers, records, admin endpoints)
+//   - DATABASE_URL, WALLET_SERVICE_ADDR, GATEWAY_ADDR env vars
+//
+// OUTPUT:
+//   - JSON API responses including under_the_hood memo annotations
+//   - Proxied wallet-service admin calls
+//
+// NOTES:
+//   Applies migrations/schema.sql idempotently at startup. Default port 7700
+//   avoids macOS AirPlay conflicts on 5000/7000.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 //! Public API gateway. Validates submissions, owns the workers/submissions
 //! tables, and proxies wallet operations to the wallet-service. Never sees keys.
 

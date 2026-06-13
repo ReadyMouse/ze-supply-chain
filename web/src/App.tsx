@@ -1,3 +1,19 @@
+// React App Shell and Page Router
+//
+//   Top-level layout: site header plus Home (demo actions) or Dashboard (audit).
+//   Minimal client-side routing via useState — no react-router.
+//
+// INPUT:
+//   - onAudit callback from Home to switch pages
+//
+// OUTPUT:
+//   - Rendered Home or Dashboard component inside .shell layout
+//
+// NOTES:
+//   Clicking the site header returns to Home from Audit.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 import { useState } from "react";
 import { Home } from "./Home";
 import { Dashboard } from "./Dashboard";

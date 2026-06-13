@@ -1,3 +1,21 @@
+// Wallet Service Configuration
+//
+//   Loads runtime settings from environment variables: seed, birthday, Postgres,
+//   lightwalletd URL, batching policy, and listen address.
+//
+// INPUT:
+//   - WALLET_SEED_PHRASE, WALLET_BIRTHDAY, DATABASE_URL, LIGHTWALLETD_URL,
+//     WALLET_DB_PATH, WALLET_SERVICE_ADDR, BATCH_MAX_RECORDS, BATCH_MAX_AGE_SECS
+//
+// OUTPUT:
+//   - Config struct consumed by wallet actor and HTTP API
+//
+// NOTES:
+//   Missing required env vars fail fast via anyhow context. Batch defaults: 5
+//   records or 120 seconds.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 use anyhow::{Context, Result};
 
 #[derive(Clone)]

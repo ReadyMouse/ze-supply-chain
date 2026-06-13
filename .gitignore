@@ -1,3 +1,19 @@
+# Git Ignore Rules
+#
+#   Excludes build artifacts, secrets, wallet sqlite data, and frontend node_modules
+#   from version control.
+#
+# INPUT:
+#   - None; consumed by git
+#
+# OUTPUT:
+#   - Ignored paths for target/, .env, /data, node_modules/, web/dist/
+#
+# NOTES:
+#   .env.example is explicitly allowed (!.env.example). Seed files never committed.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 # Rust
 /target
 **/*.rs.bk
@@ -24,3 +40,7 @@ web/dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# Agents
+documentation_agent.md
+documentation_subagent.md

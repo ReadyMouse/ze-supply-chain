@@ -1,4 +1,21 @@
 #!/usr/bin/env bash
+# Demo Seed Script
+#
+#   Enrolls three demo workers, submits four cold-chain events, and broadcasts
+#   both batches via the gateway admin API. Requires funded wallet + services.
+#
+# INPUT:
+#   - Optional gateway URL (default http://localhost:7700)
+#   - Running gateway (7700) and wallet-service (7001)
+#
+# OUTPUT:
+#   - curl POSTs to /workers, /records, /admin/split-notes, /admin/process-batch
+#
+# NOTES:
+#   Records confirm ~75s after broadcast. Splits treasury into 10 notes first.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 # Seed the demo: enroll workers and submit a believable cold-chain history.
 # Requires gateway (7700) + wallet-service (7001) running and a funded wallet.
 #

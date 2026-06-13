@@ -1,3 +1,20 @@
+// Wallet Service Internal HTTP API
+//
+//   Axum routes consumed only by the gateway: enroll, submit, process-batch,
+//   split-notes, rebuild, and status. Not exposed to the public internet.
+//
+// INPUT:
+//   - JSON request bodies (EnrollReq, QueuedRecord, etc.)
+//   - AppState (WalletHandle, Postgres pool, wallet db path)
+//
+// OUTPUT:
+//   - JSON responses with addresses, txids, wallet status, rebuild counts
+//
+// NOTES:
+//   Rebuild truncates chain-derived tables then runs indexer::run_once.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 //! Internal HTTP API consumed by the gateway. Not exposed publicly.
 
 use std::sync::Arc;

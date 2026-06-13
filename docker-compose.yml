@@ -1,3 +1,20 @@
+# Docker Compose — Local Postgres
+#
+#   Spins up Postgres 16 for the audit database. Zcash node and lightwalletd
+#   are operated separately by the deployer.
+#
+# INPUT:
+#   - docker compose up
+#
+# OUTPUT:
+#   - Postgres on localhost:5432 (user/db/password: audit)
+#   - Persistent volume at ./data/postgres
+#
+# NOTES:
+#   Healthcheck via pg_isready. Does not include wallet-service or gateway.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 services:
   postgres:
     image: postgres:16

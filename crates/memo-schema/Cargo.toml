@@ -1,3 +1,18 @@
+# Memo Schema Crate Manifest
+#
+#   Package metadata for the memo-schema library crate (MessagePack wire format).
+#
+# INPUT:
+#   - None; Cargo build configuration
+#
+# OUTPUT:
+#   - Compiled memo-schema rlib linked by gateway and wallet-service
+#
+# NOTES:
+#   Minimal deps (rmp, serde, thiserror). Strong open-source candidate.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 [package]
 name = "memo-schema"
 version.workspace = true

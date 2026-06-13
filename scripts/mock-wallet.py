@@ -1,4 +1,21 @@
 #!/usr/bin/env python3
+# Mock Wallet Service
+#
+#   Stand-in HTTP server mimicking wallet-service for UI dev without a Zcash node.
+#   Returns fake addresses and txids; nothing touches the chain.
+#
+# INPUT:
+#   - HTTP requests on /enroll, /submit, /process-batch, /status, etc.
+#   - Optional port arg (default 7001)
+#
+# OUTPUT:
+#   - JSON responses matching wallet-service surface area
+#
+# NOTES:
+#   Addresses prefixed u1mock. Use when gateway/frontend need end-to-end flow only.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 """Mock wallet-service for UI development / demo rehearsal without a node.
 
 Implements just enough of the wallet-service HTTP surface that the gateway and

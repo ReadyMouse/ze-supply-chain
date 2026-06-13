@@ -1,3 +1,20 @@
+// Record Detail Panel — Annotated Memo Viewer
+//
+//   Expandable row showing payment JSON, derivation paths, and colour-coded
+//   hex dump of the 512-byte memo for a confirmed audit record or in-flight item.
+//
+// INPUT:
+//   - AuditRecord or InFlight submission from Dashboard/Home
+//   - api.annotate for re-encoding stored fields
+//
+// OUTPUT:
+//   - Rendered UnderTheHood panel with memo_spans hex visualization
+//
+// NOTES:
+//   Annotated spans come from memo-schema encode_memo_annotated via gateway.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 import { useEffect, useState } from "react";
 import { api, AuditRecord, explorerUrl, InFlight, MemoSpan, UnderTheHood, Worker } from "./api";
 

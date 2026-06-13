@@ -1,3 +1,21 @@
+// In-Memory Compact Block Cache
+//
+//   BlockSource + BlockCache implementation for zcash_client_backend sync.
+//   Holds compact blocks in RAM during scan batches to bound memory use.
+//
+// INPUT:
+//   - CompactBlock vectors written by sync driver
+//   - ScanRange queries for read/delete operations
+//
+// OUTPUT:
+//   - Iterated CompactBlocks to the wallet scan pipeline
+//   - Tip height for sync progress tracking
+//
+// NOTES:
+//   Scanned ranges are deleted from cache after processing (steady-state = one batch).
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 //! In-memory compact block cache for `zcash_client_backend::sync::run`.
 //!
 //! The sync driver downloads compact blocks into this cache, scans them, and

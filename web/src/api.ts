@@ -1,3 +1,19 @@
+// Gateway API Client
+//
+//   Typed fetch wrapper for the gateway REST API. Proxied via Vite dev server
+//   at /api → localhost:7700.
+//
+// INPUT:
+//   - HTTP paths and JSON bodies for workers, records, admin endpoints
+//
+// OUTPUT:
+//   - Typed responses (Worker, AuditRecord, UnderTheHood, Status, etc.)
+//
+// NOTES:
+//   explorerUrl links confirmed txids to mainnet.zcashexplorer.app.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 const BASE = "/api";
 
 export type Worker = {

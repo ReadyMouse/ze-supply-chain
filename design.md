@@ -1,3 +1,10 @@
+<!-- Product Design Overview
+     High-level architecture for the Zcash audit log supply-chain system.
+     INPUT: None (design document)
+     OUTPUT: Component descriptions and data flow for implementers
+     NOTES: Companion to PLAN.md (implementation) and README.md (runbook).
+     Written by Composer for Ze Supply Chain. June 2025. All rights reserved. -->
+
 # Zcash Audit Log System — Component Overview
 
 ## Concept Summary

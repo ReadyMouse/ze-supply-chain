@@ -1,3 +1,10 @@
+<!-- Implementation Plan
+     Hackathon-scoped build plan: Rust workspace layout, memo encoding, services.
+     INPUT: design.md concept
+     OUTPUT: Phased tasks, tech choices, workspace file map
+     NOTES: Some items (sqlx) superseded by tokio-postgres in actual implementation.
+     Written by Composer for Ze Supply Chain. June 2025. All rights reserved. -->
+
 # Implementation Plan: Zcash Audit Log (Rust + TypeScript)
 
 Implementation plan for the system described in [design.md](design.md), scoped to the 2–3 week hackathon vertical slice (pharma cold chain demo).

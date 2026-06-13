@@ -1,3 +1,23 @@
+// Wallet Actor — Signer and Batch Queue
+//
+//   Owns the zcash_client_sqlite WalletDb, lightwalletd gRPC connection, and
+//   record batch queue. All spending-key operations happen inside this module.
+//
+// INPUT:
+//   - Config (seed, birthday, lightwalletd URL, batch limits)
+//   - Commands: EnsureAccount, Enqueue, ProcessBatch, SplitNotes, Status
+//
+// OUTPUT:
+//   - Derived shielded addresses (ZIP 32)
+//   - Broadcast transaction txids for batched memos
+//   - WalletStatus (balance, chain tip, queued records)
+//
+// NOTES:
+//   Requires org seed and lightwalletd. Not open-source ready due to Zcash stack
+//   and proprietary key handling. Pre-split notes to avoid change-output blocking.
+//
+// Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 //! The wallet actor: owns the zcash_client_sqlite WalletDb, the lightwalletd
 //! connection, and the record batch queue. Everything that touches the spending
 //! key happens inside this module.

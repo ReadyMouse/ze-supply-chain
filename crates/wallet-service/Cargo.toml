@@ -1,3 +1,19 @@
+# Wallet Service Crate Manifest
+#
+#   Package metadata for the Zcash signer + indexer binary (internal API).
+#
+# INPUT:
+#   - None; Cargo build configuration
+#
+# OUTPUT:
+#   - wallet-service binary (port 7001 by default)
+#
+# NOTES:
+#   Heavy Zcash dependency stack; requires org seed and lightwalletd. Not an
+#   open-source candidate without significant abstraction of key management.
+#
+# Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 [package]
 name = "wallet-service"
 version.workspace = true

@@ -1,3 +1,20 @@
+-- Audit Database Schema
+--
+--   Postgres DDL for workers, submissions, address_book, and audit_records.
+--   Applied idempotently at gateway and wallet-service startup.
+--
+-- INPUT:
+--   - None; executed as SQL batch at service boot
+--
+-- OUTPUT:
+--   - workers, submissions (operational)
+--   - address_book, audit_records (chain-derived, rebuildable)
+--
+-- NOTES:
+--   Chain-derived tables are safe to TRUNCATE; indexer rebuilds from wallet sqlite.
+--
+-- Written by Composer for Ze Supply Chain. June 2025. All rights reserved.
+
 -- Audit database schema. Applied idempotently at service startup.
 --
 -- Two kinds of tables:
