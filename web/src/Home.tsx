@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api, Worker } from "./api";
+import { Artifact, UnderTheHoodSection } from "./UnderTheHood";
 
 type Modal = "none" | "new-user" | "log-temp";
 
 export function Home({ onAudit }: { onAudit: () => void }) {
   const [modal, setModal] = useState<Modal>("none");
+  const [artifact, setArtifact] = useState<Artifact | null>(null);
 
   return (
     <div className="home">
@@ -14,6 +16,7 @@ export function Home({ onAudit }: { onAudit: () => void }) {
         the database is just a cache.
       </p>
 
+      <p className="buttons-label">Sample Transactions</p>
       <div className="big-buttons">
         <button className="big-btn" onClick={() => setModal("new-user")}>
           <span className="icon">＋</span>
@@ -25,20 +28,38 @@ export function Home({ onAudit }: { onAudit: () => void }) {
           Log Temp
           <span className="hint">record a cold-chain event</span>
         </button>
-        <button className="big-btn" onClick={onAudit}>
-          <span className="icon">⛓</span>
-          Audit
-          <span className="hint">reconstructed ledger + tx IDs</span>
-        </button>
       </div>
+      <button className="audit-btn" onClick={onAudit}>
+        <span>⛓</span>
+        Audit Dashboard
+        <span className="hint">reconstructed ledger + confirmed tx IDs</span>
+      </button>
 
-      {modal === "new-user" && <NewUserModal onClose={() => setModal("none")} />}
-      {modal === "log-temp" && <LogTempModal onClose={() => setModal("none")} />}
+      <UnderTheHoodSection artifact={artifact} />
+
+      {modal === "new-user" && (
+        <NewUserModal
+          onClose={() => setModal("none")}
+          onArtifact={setArtifact}
+        />
+      )}
+      {modal === "log-temp" && (
+        <LogTempModal
+          onClose={() => setModal("none")}
+          onArtifact={setArtifact}
+        />
+      )}
     </div>
   );
 }
 
-function NewUserModal({ onClose }: { onClose: () => void }) {
+function NewUserModal({
+  onClose,
+  onArtifact,
+}: {
+  onClose: () => void;
+  onArtifact: (a: Artifact) => void;
+}) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("warehouse_worker");
   const [busy, setBusy] = useState(false);
@@ -51,6 +72,7 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
     try {
       const r = await api.createWorker(name.trim(), role);
       setResult({ address: r.address });
+      onArtifact({ kind: "enroll", workerName: name.trim(), submissionId: r.submission_id, hood: r.under_the_hood });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -121,7 +143,13 @@ function NewUserModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function LogTempModal({ onClose }: { onClose: () => void }) {
+function LogTempModal({
+  onClose,
+  onArtifact,
+}: {
+  onClose: () => void;
+  onArtifact: (a: Artifact) => void;
+}) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [userIndex, setUserIndex] = useState<number | null>(null);
   const [itemId, setItemId] = useState("");
@@ -148,13 +176,20 @@ function LogTempModal({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await api.createRecord({
+      const r = await api.createRecord({
         user_index: userIndex,
         item_id: itemId.trim(),
         event_type: eventType,
         quantity,
         temp_c: parseFloat(tempC),
         notes: notes.trim(),
+      });
+      const worker = workers.find((w) => w.user_index === userIndex);
+      onArtifact({
+        kind: "event",
+        workerName: worker?.name ?? `#${userIndex}`,
+        submissionId: r.id,
+        hood: r.under_the_hood,
       });
       setSubmitted(true);
     } catch (e) {

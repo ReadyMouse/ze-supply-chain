@@ -135,31 +135,110 @@ impl Record {
     }
 }
 
+/// A labelled byte range within an encoded memo, for display/annotation.
+/// Offsets are relative to the start of the 512-byte memo.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct MemoSpan {
+    pub label: String,
+    pub start: usize,
+    pub end: usize,
+}
+
 /// Encode a record into a full 512-byte memo (marker + version + payload + padding).
 pub fn encode_memo(record: &Record) -> Result<[u8; MEMO_SIZE], SchemaError> {
+    encode_memo_annotated(record).map(|(memo, _)| memo)
+}
+
+/// Like [`encode_memo`], but also returns a labelled span for every byte range
+/// (marker, version, each MessagePack field, padding) so UIs can render an
+/// annotated hex dump of exactly what goes on-chain.
+pub fn encode_memo_annotated(
+    record: &Record,
+) -> Result<([u8; MEMO_SIZE], Vec<MemoSpan>), SchemaError> {
     record.validate()?;
 
     let mut payload: Vec<u8> = Vec::with_capacity(MEMO_SIZE);
+    let mut spans: Vec<MemoSpan> = vec![
+        MemoSpan {
+            label: "ZIP 302 binary-memo marker (0xFF)".into(),
+            start: 0,
+            end: 1,
+        },
+        MemoSpan {
+            label: format!("schema version ({SCHEMA_VERSION})"),
+            start: 1,
+            end: 2,
+        },
+    ];
     let map_err = |e: rmp::encode::ValueWriteError<std::io::Error>| {
         SchemaError::Malformed(format!("encode failed: {e}"))
     };
 
+    // Records a span for the bytes written by `f`, offset by the 2-byte header.
+    macro_rules! field {
+        ($label:expr, $f:expr) => {{
+            let start = payload.len() + 2;
+            $f;
+            spans.push(MemoSpan {
+                label: $label.into(),
+                start,
+                end: payload.len() + 2,
+            });
+        }};
+    }
+
     match record {
         Record::Enroll(e) => {
-            encode::write_array_len(&mut payload, 3).map_err(map_err)?;
-            encode::write_uint(&mut payload, TYPE_ENROLL as u64).map_err(map_err)?;
-            encode::write_str(&mut payload, &e.name).map_err(map_err)?;
-            encode::write_str(&mut payload, &e.role).map_err(map_err)?;
+            field!(
+                "msgpack array header (3 elements)",
+                encode::write_array_len(&mut payload, 3).map_err(map_err)?
+            );
+            field!(
+                "record type tag: 0 = enroll",
+                encode::write_uint(&mut payload, TYPE_ENROLL as u64).map_err(map_err)?
+            );
+            field!(
+                format!("name: {:?}", e.name),
+                encode::write_str(&mut payload, &e.name).map_err(map_err)?
+            );
+            field!(
+                format!("role: {:?}", e.role),
+                encode::write_str(&mut payload, &e.role).map_err(map_err)?
+            );
         }
         Record::Event(e) => {
-            encode::write_array_len(&mut payload, 7).map_err(map_err)?;
-            encode::write_uint(&mut payload, TYPE_EVENT as u64).map_err(map_err)?;
-            encode::write_str(&mut payload, &e.item_id).map_err(map_err)?;
-            encode::write_uint(&mut payload, e.event_type.as_u8() as u64).map_err(map_err)?;
-            encode::write_uint(&mut payload, e.quantity as u64).map_err(map_err)?;
-            encode::write_sint(&mut payload, e.temp_centi as i64).map_err(map_err)?;
-            encode::write_uint(&mut payload, e.client_ts as u64).map_err(map_err)?;
-            encode::write_str(&mut payload, &e.notes).map_err(map_err)?;
+            field!(
+                "msgpack array header (7 elements)",
+                encode::write_array_len(&mut payload, 7).map_err(map_err)?
+            );
+            field!(
+                "record type tag: 1 = event",
+                encode::write_uint(&mut payload, TYPE_EVENT as u64).map_err(map_err)?
+            );
+            field!(
+                format!("item_id: {:?}", e.item_id),
+                encode::write_str(&mut payload, &e.item_id).map_err(map_err)?
+            );
+            field!(
+                format!("event_type: {} = {}", e.event_type.as_u8(), e.event_type.as_str()),
+                encode::write_uint(&mut payload, e.event_type.as_u8() as u64).map_err(map_err)?
+            );
+            field!(
+                format!("quantity: {}", e.quantity),
+                encode::write_uint(&mut payload, e.quantity as u64).map_err(map_err)?
+            );
+            field!(
+                format!("temp_centi: {} ({:.2}°C)", e.temp_centi, e.temp_centi as f64 / 100.0),
+                encode::write_sint(&mut payload, e.temp_centi as i64).map_err(map_err)?
+            );
+            field!(
+                format!("client_ts: {} (unix seconds)", e.client_ts),
+                encode::write_uint(&mut payload, e.client_ts as u64).map_err(map_err)?
+            );
+            field!(
+                format!("notes: {:?}", e.notes),
+                encode::write_str(&mut payload, &e.notes).map_err(map_err)?
+            );
         }
     }
 
@@ -171,11 +250,20 @@ pub fn encode_memo(record: &Record) -> Result<[u8; MEMO_SIZE], SchemaError> {
         });
     }
 
+    let used = payload.len() + 2;
+    if used < MEMO_SIZE {
+        spans.push(MemoSpan {
+            label: format!("zero padding ({} bytes)", MEMO_SIZE - used),
+            start: used,
+            end: MEMO_SIZE,
+        });
+    }
+
     let mut memo = [0u8; MEMO_SIZE];
     memo[0] = BINARY_MEMO_MARKER;
     memo[1] = SCHEMA_VERSION;
     memo[2..2 + payload.len()].copy_from_slice(&payload);
-    Ok(memo)
+    Ok((memo, spans))
 }
 
 /// Decode a memo (any length up to 512 bytes; trailing zero padding is ignored).
@@ -348,6 +436,27 @@ mod tests {
             decode_memo(&memo),
             Err(SchemaError::UnknownVersion(99))
         ));
+    }
+
+    #[test]
+    fn annotated_spans_cover_every_byte_contiguously() {
+        for rec in [
+            worst_case_event(),
+            Record::Enroll(EnrollRecord {
+                name: "Alice".into(),
+                role: "driver".into(),
+            }),
+        ] {
+            let (memo, spans) = encode_memo_annotated(&rec).unwrap();
+            assert_eq!(memo, encode_memo(&rec).unwrap());
+            let mut pos = 0;
+            for span in &spans {
+                assert_eq!(span.start, pos, "gap before {:?}", span.label);
+                assert!(span.end > span.start, "empty span {:?}", span.label);
+                pos = span.end;
+            }
+            assert_eq!(pos, MEMO_SIZE, "spans must cover the full memo");
+        }
     }
 
     #[test]

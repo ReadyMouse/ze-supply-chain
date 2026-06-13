@@ -51,7 +51,7 @@ hundreds of records at ZIP 317 fee rates (~0.0001 ZEC per record output).
 
 ```bash
 cargo run -p wallet-service   # signer + indexer, port 7001 (internal)
-cargo run -p gateway          # public API, port 7000
+cargo run -p gateway          # public API, port 7700
 cd web && npm install && npm run dev   # UI on http://localhost:5173
 ```
 
@@ -85,7 +85,7 @@ wallet, pre-split the ZEC so batches don't serialize behind a single change
 output:
 
 ```bash
-curl -X POST localhost:7000/admin/split-notes \
+curl -X POST localhost:7700/admin/split-notes \
   -H 'Content-Type: application/json' -d '{"parts": 10, "zat_per_part": 200000}'
 ```
 

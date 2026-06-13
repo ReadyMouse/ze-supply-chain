@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Seed the demo: enroll workers and submit a believable cold-chain history.
-# Requires gateway (7000) + wallet-service (7001) running and a funded wallet.
+# Requires gateway (7700) + wallet-service (7001) running and a funded wallet.
 #
 # Usage: ./scripts/seed-demo.sh [gateway-url]
 set -euo pipefail
 
-GW="${1:-http://localhost:7000}"
+GW="${1:-http://localhost:7700}"
 
 say() { printf '\n\033[1;33m== %s\033[0m\n' "$*"; }
 

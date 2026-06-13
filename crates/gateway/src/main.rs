@@ -17,6 +17,48 @@ use uuid::Uuid;
 
 use memo_schema::{EventRecord, EventType, Record};
 
+/// Judge-facing construction details: the real bytes that will go on-chain.
+fn under_the_hood(
+    record: &Record,
+    user_index: i32,
+    address: &str,
+    receiver_name: &str,
+    receiver_role: &str,
+) -> Result<serde_json::Value, ApiError> {
+    let (memo, spans) =
+        memo_schema::encode_memo_annotated(record).map_err(|e| internal(e.to_string()))?;
+    // The shape handed to the wallet-service, which becomes a ZIP 321 payment
+    // in the proposed transaction sent to lightwalletd.
+    let payment_json = serde_json::json!({
+        "spend_from_account": "m/32'/133'/0'",
+        "payments": [{
+            "recipient_address": address,
+            "value_zat": 10_000,
+            "memo_plaintext": record,
+            "memo_encoded": "512-byte MessagePack buffer (annotated below)",
+        }],
+        "fee_rule": "ZIP-317",
+    });
+    Ok(serde_json::json!({
+        "derivation_path": format!("m/32'/133'/{user_index}'"),
+        "address": address,
+        "sender": {
+            "label": "org treasury",
+            "derivation_path": "m/32'/133'/0'",
+        },
+        "receiver": {
+            "label": receiver_name,
+            "role": receiver_role,
+            "derivation_path": format!("m/32'/133'/{user_index}'"),
+            "address": address,
+        },
+        "payment_json": payment_json,
+        "memo_hex": hex::encode(memo),
+        "memo_spans": spans,
+        "record_json": record,
+    }))
+}
+
 #[derive(Clone)]
 struct AppState {
     pg: Pool,
@@ -37,7 +79,8 @@ async fn main() -> Result<()> {
     let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL")?;
     let wallet_addr =
         std::env::var("WALLET_SERVICE_ADDR").unwrap_or_else(|_| "127.0.0.1:7001".into());
-    let listen_addr = std::env::var("GATEWAY_ADDR").unwrap_or_else(|_| "127.0.0.1:7000".into());
+    // 7700: avoids macOS ControlCenter, which squats on 5000/7000 for AirPlay.
+    let listen_addr = std::env::var("GATEWAY_ADDR").unwrap_or_else(|_| "127.0.0.1:7700".into());
 
     let config: tokio_postgres::Config = database_url.parse().context("parse DATABASE_URL")?;
     let pg = Pool::builder(Manager::new(config, NoTls))
@@ -200,6 +243,12 @@ async fn create_worker(
         .await
         .map_err(internal)?;
 
+    let enroll_record = Record::Enroll(memo_schema::EnrollRecord {
+        name: req.name.clone(),
+        role: req.role.clone(),
+    });
+    let hood = under_the_hood(&enroll_record, user_index, &address, &req.name, &req.role)?;
+
     Ok((
         StatusCode::CREATED,
         Json(serde_json::json!({
@@ -207,6 +256,7 @@ async fn create_worker(
             "address": address,
             "submission_id": submission_id,
             "status": "pending",
+            "under_the_hood": hood,
         })),
     ))
 }
@@ -244,14 +294,17 @@ async fn create_record(
     let client = state.pg.get().await.map_err(internal)?;
     let worker = client
         .query_opt(
-            "SELECT 1 FROM workers WHERE user_index = $1",
+            "SELECT address, name, role FROM workers WHERE user_index = $1",
             &[&(req.user_index as i32)],
         )
         .await
         .map_err(internal)?;
-    if worker.is_none() {
+    let Some(worker) = worker else {
         return Err(err(StatusCode::NOT_FOUND, "unknown worker"));
-    }
+    };
+    let address: String = worker.get(0);
+    let worker_name: String = worker.get(1);
+    let worker_role: String = worker.get(2);
 
     let submission_id = Uuid::new_v4();
     client
@@ -283,9 +336,21 @@ async fn create_record(
         return Err(internal(format!("wallet-service submit failed: {body}")));
     }
 
+    let hood = under_the_hood(
+        &record,
+        req.user_index as i32,
+        &address,
+        &worker_name,
+        &worker_role,
+    )?;
+
     Ok((
         StatusCode::ACCEPTED,
-        Json(serde_json::json!({ "id": submission_id, "status": "pending" })),
+        Json(serde_json::json!({
+            "id": submission_id,
+            "status": "pending",
+            "under_the_hood": hood,
+        })),
     ))
 }
 

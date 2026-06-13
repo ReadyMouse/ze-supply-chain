@@ -66,14 +66,52 @@ header.site span.sub { color: var(--muted); font-size: 0.85rem; }
   font-size: 0.95rem;
 }
 
+.buttons-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+  text-align: center;
+}
+
 .big-buttons {
   display: grid;
-  grid-template-columns: repeat(3, minmax(180px, 240px));
+  grid-template-columns: repeat(2, minmax(180px, 260px));
   gap: 1.25rem;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 600px) {
   .big-buttons { grid-template-columns: 1fr; }
+}
+
+.audit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: min(540px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  margin-top: 0.25rem;
+}
+
+.audit-btn:hover {
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+
+.audit-btn .hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
 }
 
 .big-btn {
@@ -325,4 +363,264 @@ table.records tr:hover td { background: var(--panel); }
   text-transform: uppercase;
   color: var(--muted);
   margin: 1.75rem 0 0.6rem;
+}
+
+/* ---- under the hood ---- */
+
+.hood {
+  width: 100%;
+  max-width: 900px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 2rem;
+}
+
+.hood-title {
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 1.25rem;
+}
+
+.hood-explainer {
+  display: grid;
+  gap: 0.9rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+.hood-explainer b { color: var(--text); }
+
+.hood-hint { font-size: 0.85rem; }
+
+.artifact {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+}
+
+.artifact h3 {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.artifact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 720px) {
+  .artifact-grid { grid-template-columns: 1fr; }
+}
+
+.artifact-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.artifact-block h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.artifact-block p.muted {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.kv {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  margin-bottom: 0.4rem;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.kv span:first-child {
+  color: var(--muted);
+  min-width: 7.5rem;
+  flex-shrink: 0;
+}
+
+.kv span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.kv code {
+  word-break: break-all;
+}
+
+.kv code, pre.json, .hexdump {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.78rem;
+}
+
+code.wrap { word-break: break-all; }
+
+pre.json {
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 0.7rem;
+  margin: 0;
+  overflow-x: auto;
+  line-height: 1.45;
+}
+
+.hexdump {
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 0.7rem;
+  overflow-x: auto;
+  line-height: 1.6;
+}
+
+.hex-row { display: flex; gap: 0.9rem; white-space: nowrap; }
+.hex-off { color: var(--muted); user-select: none; }
+.hex-bytes { display: inline-flex; gap: 0.3rem; }
+.hex-byte { border-radius: 3px; padding: 0 0.1rem; }
+
+.span-c0 { background: rgba(244, 183, 40, 0.3); }
+.span-c1 { background: rgba(91, 157, 255, 0.3); }
+.span-c2 { background: rgba(62, 207, 142, 0.3); }
+.span-c3 { background: rgba(255, 107, 107, 0.3); }
+.span-c4 { background: rgba(186, 124, 255, 0.32); }
+.span-c5 { background: rgba(64, 224, 208, 0.25); }
+.span-c6 { background: rgba(255, 160, 80, 0.3); }
+.span-c7 { background: rgba(240, 98, 173, 0.28); }
+.span-pad { color: var(--muted); opacity: 0.45; }
+
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.legend-item { display: flex; gap: 0.5rem; align-items: baseline; }
+.legend-item code { color: var(--text); }
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.txplan {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.75rem;
+}
+
+.txplan-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  line-height: 1.5;
+}
+
+.txplan-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 0.1rem 0.45rem;
+  flex-shrink: 0;
+  min-width: 3.6rem;
+  text-align: center;
+}
+
+.txplan-tag.in  { background: rgba(91, 157, 255, 0.15); color: var(--blue); }
+.txplan-tag.out { background: rgba(62, 207, 142, 0.15); color: var(--green); }
+.txplan-tag.fee { background: rgba(244, 183, 40, 0.15); color: var(--accent); }
+
+/* ---- proof box ---- */
+
+.proof-box {
+  background: var(--panel-2);
+  border: 1px solid #ba7cff44;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-top: 1rem;
+}
+
+.proof-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.proof-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ba7cff;
+}
+
+button.ghost.proof-refresh {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.75rem;
+}
+
+.proof-confirmed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.proof-hash {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.proof-txlink {
+  word-break: break-all;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.proof-note {
+  font-size: 0.78rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.proof-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.proof-pending p {
+  font-size: 0.82rem;
+  margin: 0;
+  line-height: 1.55;
 }

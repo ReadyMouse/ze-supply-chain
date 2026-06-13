@@ -48,6 +48,36 @@ export type Status = {
   org_address: string;
 };
 
+export type MemoSpan = {
+  label: string;
+  start: number;
+  end: number;
+};
+
+export type UnderTheHood = {
+  derivation_path: string;
+  address: string;
+  sender: { label: string; derivation_path: string };
+  receiver: {
+    label: string;
+    role: string;
+    derivation_path: string;
+    address: string;
+  };
+  payment_json: Record<string, unknown>;
+  memo_hex: string;
+  memo_spans: MemoSpan[];
+  record_json: Record<string, unknown>;
+};
+
+export type Submission = {
+  id: string;
+  user_index: number;
+  kind: "enroll" | "event";
+  status: "pending" | "broadcast" | "confirmed";
+  txid: string | null;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const resp = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -69,10 +99,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   workers: () => request<Worker[]>("/workers"),
   createWorker: (name: string, role: string) =>
-    request<{ user_index: number; address: string; submission_id: string }>(
-      "/workers",
-      { method: "POST", body: JSON.stringify({ name, role }) },
-    ),
+    request<{
+      user_index: number;
+      address: string;
+      submission_id: string;
+      under_the_hood: UnderTheHood;
+    }>("/workers", { method: "POST", body: JSON.stringify({ name, role }) }),
   records: (filters?: { user_index?: number; event_type?: string; item_id?: string }) => {
     const params = new URLSearchParams();
     if (filters?.user_index !== undefined) params.set("user_index", String(filters.user_index));
@@ -89,10 +121,11 @@ export const api = {
     temp_c: number;
     notes: string;
   }) =>
-    request<{ id: string; status: string }>("/records", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+    request<{ id: string; status: string; under_the_hood: UnderTheHood }>(
+      "/records",
+      { method: "POST", body: JSON.stringify(body) },
+    ),
+  submission: (id: string) => request<Submission>(`/records/${id}`),
   processBatch: () =>
     request<{ broadcast: { submission_id: string; txid: string }[] }>(
       "/admin/process-batch",
