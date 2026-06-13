@@ -1,0 +1,60 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/memo-schema",
+    "crates/wallet-service",
+    "crates/gateway",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
+[workspace.dependencies]
+# Zcash stack (pinned)
+zcash_client_backend = { version = "0.23", features = ["lightwalletd-tonic-tls-webpki-roots", "lightwalletd-tonic-transport", "sync", "orchard"] }
+zcash_client_sqlite = { version = "0.21", features = ["unstable", "orchard"] }
+zcash_primitives = "0.28"
+zcash_protocol = "0.9"
+zcash_keys = { version = "0.14", features = ["orchard", "sapling"] }
+zcash_address = "0.12"
+zcash_proofs = { version = "0.28", features = ["download-params", "local-prover"] }
+zip32 = "0.2"
+zip321 = "0.8"
+
+# Async + web
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+tonic = { version = "0.14", features = ["codegen", "transport", "tls-ring", "tls-webpki-roots"] }
+tower-http = { version = "0.6", features = ["cors"] }
+reqwest = { version = "0.12", features = ["json"] }
+
+# Data
+# NOTE: not sqlx — sqlx's optional sqlite driver pins libsqlite3-sys at a version
+# that conflicts with zcash_client_sqlite's rusqlite (both `links = "sqlite3"`),
+# and cargo rejects that at resolution time even when the sqlite feature is off.
+tokio-postgres = { version = "0.7", features = ["with-uuid-1", "with-time-0_3", "with-serde_json-1"] }
+deadpool-postgres = "0.14"
+rusqlite = { version = "0.37", features = ["bundled"] }
+rmp = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+time = { version = "0.3", features = ["serde", "formatting"] }
+
+# Misc
+async-trait = "0.1"
+dotenvy = "0.15"
+secrecy = "0.8"
+nonempty = "0.11"
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+clap = { version = "4", features = ["derive", "env"] }
+hex = "0.4"
+bip39 = { version = "2", features = ["rand"] }
+rand = "0.8"
+
+[profile.release]
+lto = "thin"

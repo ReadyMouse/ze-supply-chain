@@ -1,0 +1,26 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Secrets — never commit the wallet seed; it controls real ZEC
+.env
+.env.*
+!.env.example
+*.seed
+
+# Wallet + runtime data (rebuildable from seed + chain)
+/data
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Frontend
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log

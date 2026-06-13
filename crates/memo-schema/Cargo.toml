@@ -1,0 +1,9 @@
+[package]
+name = "memo-schema"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rmp = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
