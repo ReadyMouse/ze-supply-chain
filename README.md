@@ -1,10 +1,3 @@
-<!-- ZE Supply Chain — Main README
-     Project overview, memo encoding spec, runbook, and component index.
-     INPUT: None (primary project documentation)
-     OUTPUT: Onboarding guide for developers and demo operators
-     NOTES: See design.md, PLAN.md, and README_*.md in subfolders for detail.
-     Written by Composer for Ze Supply Chain. June 2025. All rights reserved. -->
-
 # ze-supply-chain
 
  Immutable cold-chain audit logs on Zcash mainnet — temperature and
@@ -45,6 +38,29 @@ handoff events encoded in shielded transaction memos. Bringing supply chain logi
 
 - **B2B with tracking vendors** — partners who already sell sensors and portal
   software swap the audit logs from SQL/SaaS → on-chain memo
+
+#### Scaling limits — and why Merkle roots
+
+A savvy reader might notice that although a single ZEC transaction fee looks
+tiny, the volume of a real cold-chain system breaks the per-record model twice
+over. Temperature readings every ten minutes, plus every handoff and shipment
+event across an industry, add up fast.
+
+The **first wall is throughput**: Zcash cannot process the transactions per
+second that even one large operator would generate, let alone the whole sector,
+so the design hits a hard ceiling long before it scales.
+
+The **second is cost**: every record becomes a roughly four-cent toll paid to
+miners, to store data that costs a fraction of a cent anywhere else. The only
+structural winner is the miner. A system meant to give shippers a verifiable,
+private record would, in this naive form, just meter their operations and route
+the proceeds to whoever mined the block.
+
+That is precisely why we recommend the production design **anchors batched Merkle roots** —
+many records hashed into one root, one on-chain commitment per batch — instead
+of one shielded output per sensor reading. This hackathon demo uses one memo per
+record to make the wire format and audit trail visible; Merkle anchoring is the
+path to real volume.
 
 ---
 
