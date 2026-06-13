@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS audit_records (
     output_index INTEGER NOT NULL,
     block_height BIGINT NOT NULL,
     block_time   TIMESTAMPTZ,
-    address      TEXT,                         -- receiving address (identity)
-    user_index   INTEGER,
+    address      TEXT,                         -- receiving address (org treasury for events)
+    user_index   INTEGER,                     -- submitter_index from memo for events
     item_id      TEXT NOT NULL,
     event_type   TEXT NOT NULL,
     quantity     BIGINT NOT NULL,

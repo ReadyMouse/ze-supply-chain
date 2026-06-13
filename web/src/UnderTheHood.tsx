@@ -94,16 +94,31 @@ function ArtifactView({ artifact }: { artifact: Artifact }) {
         <p className="muted">
           {kind === "enroll"
             ? "A unique shielded address, deterministically derived from the org master seed for this user index. The address is stored in the database, but it can also be re-derived at any time from seed + index alone — so if the database were wiped, every address and its full history would be recoverable from the blockchain."
-            : "The record is addressed to the worker's own derived shielded address — receipt at this address is what attributes the record to them."}
+            : "The worker's derived address and submitter_index in the memo attribute this record. The shielded output itself lands at the org receive address (treasury pool), not the worker's personal address."}
         </p>
-        <div className="kv">
-          <span>ZIP 32 path</span>
-          <code>{hood.derivation_path}</code>
-        </div>
-        <div className="kv">
-          <span>shielded address</span>
-          <code className="wrap">{hood.address}</code>
-        </div>
+        {kind === "event" && hood.submitter ? (
+          <>
+            <div className="kv">
+              <span>submitter path</span>
+              <code>{hood.submitter.derivation_path}</code>
+            </div>
+            <div className="kv">
+              <span>submitter address</span>
+              <code className="wrap">{hood.submitter.address}</code>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="kv">
+              <span>ZIP 32 path</span>
+              <code>{hood.derivation_path}</code>
+            </div>
+            <div className="kv">
+              <span>shielded address</span>
+              <code className="wrap">{hood.address}</code>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="artifact-block">
@@ -128,10 +143,10 @@ function ArtifactView({ artifact }: { artifact: Artifact }) {
             <b>
               {hood.receiver.label} ({hood.receiver.role})
             </b>{" "}
-            <code>{hood.receiver.derivation_path}</code> — the worker's derived
-            address. The indexer's address book maps address → identity, so
-            receipt here is what attributes this record to{" "}
-            {hood.receiver.label}.
+            <code>{hood.receiver.derivation_path}</code> —
+            {kind === "event"
+              ? " org treasury pool; memo submitter_index names the worker"
+              : ` the worker's derived address. The indexer's address book maps address → identity, so receipt here registers ${hood.receiver.label}.`}
           </span>
         </div>
       </div>

@@ -110,8 +110,22 @@ async fn submit(
     State(state): State<AppState>,
     Json(req): Json<SubmitReq>,
 ) -> Result<StatusCode, ApiError> {
+    let record = match req.record {
+        Record::Event(e) => {
+            if e.submitter_index != 0 && e.submitter_index != req.user_index {
+                return Err((
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "submitter_index does not match user_index".into(),
+                ));
+            }
+            let mut e = e;
+            e.submitter_index = req.user_index;
+            Record::Event(e)
+        }
+        other => other,
+    };
     // Validate the record fits in a memo before accepting it.
-    memo_schema::encode_memo(&req.record)
+    memo_schema::encode_memo(&record)
         .map_err(|e| (StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))?;
 
     state
@@ -119,7 +133,7 @@ async fn submit(
         .enqueue(QueuedRecord {
             submission_id: req.submission_id,
             user_index: req.user_index,
-            record: req.record,
+            record,
         })
         .await
         .map_err(internal)?;

@@ -39,43 +39,93 @@ use memo_schema::{EventRecord, EventType, Record};
 /// Judge-facing construction details: the real bytes that will go on-chain.
 fn under_the_hood(
     record: &Record,
-    user_index: i32,
-    address: &str,
-    receiver_name: &str,
-    receiver_role: &str,
+    org_receive_address: &str,
+    worker_index: i32,
+    worker_address: &str,
+    worker_name: &str,
+    worker_role: &str,
 ) -> Result<serde_json::Value, ApiError> {
     let (memo, spans) =
         memo_schema::encode_memo_annotated(record).map_err(|e| internal(e.to_string()))?;
+
+    let (recipient_address, recipient_path, recipient_label, recipient_role) = match record {
+        Record::Enroll(_) => (
+            worker_address,
+            format!("m/32'/133'/{worker_index}'"),
+            worker_name,
+            worker_role,
+        ),
+        Record::Event(_) => (
+            org_receive_address,
+            "m/32'/133'/0'".to_string(),
+            "org receive address",
+            "treasury pool",
+        ),
+    };
+
     // The shape handed to the wallet-service, which becomes a ZIP 321 payment
     // in the proposed transaction sent to lightwalletd.
     let payment_json = serde_json::json!({
         "spend_from_account": "m/32'/133'/0'",
         "payments": [{
-            "recipient_address": address,
+            "recipient_address": recipient_address,
             "value_zat": 10_000,
             "memo_plaintext": record,
             "memo_encoded": "512-byte MessagePack buffer (annotated below)",
         }],
         "fee_rule": "ZIP-317",
     });
-    Ok(serde_json::json!({
-        "derivation_path": format!("m/32'/133'/{user_index}'"),
-        "address": address,
+
+    let mut hood = serde_json::json!({
+        "derivation_path": recipient_path,
+        "address": recipient_address,
         "sender": {
             "label": "org treasury",
             "derivation_path": "m/32'/133'/0'",
         },
         "receiver": {
-            "label": receiver_name,
-            "role": receiver_role,
-            "derivation_path": format!("m/32'/133'/{user_index}'"),
-            "address": address,
+            "label": recipient_label,
+            "role": recipient_role,
+            "derivation_path": recipient_path,
+            "address": recipient_address,
         },
         "payment_json": payment_json,
         "memo_hex": hex::encode(memo),
         "memo_spans": spans,
         "record_json": record,
-    }))
+    });
+
+    if matches!(record, Record::Event(_)) {
+        hood["submitter"] = serde_json::json!({
+            "label": worker_name,
+            "role": worker_role,
+            "derivation_path": format!("m/32'/133'/{worker_index}'"),
+            "address": worker_address,
+            "user_index": worker_index,
+        });
+    }
+
+    Ok(hood)
+}
+
+async fn wallet_org_address(state: &AppState) -> Result<String, ApiError> {
+    let resp = state
+        .http
+        .get(format!("{}/status", state.wallet_url))
+        .send()
+        .await
+        .map_err(internal)?;
+    if !resp.status().is_success() {
+        return Err(internal(format!(
+            "wallet-service status failed: {}",
+            resp.text().await.unwrap_or_default()
+        )));
+    }
+    let status: serde_json::Value = resp.json().await.map_err(internal)?;
+    Ok(status["org_address"]
+        .as_str()
+        .unwrap_or_default()
+        .to_string())
 }
 
 #[derive(Clone)]
@@ -267,7 +317,15 @@ async fn create_worker(
         name: req.name.clone(),
         role: req.role.clone(),
     });
-    let hood = under_the_hood(&enroll_record, user_index, &address, &req.name, &req.role)?;
+    let org_address = wallet_org_address(&state).await.unwrap_or_default();
+    let hood = under_the_hood(
+        &enroll_record,
+        &org_address,
+        user_index,
+        &address,
+        &req.name,
+        &req.role,
+    )?;
 
     Ok((
         StatusCode::CREATED,
@@ -300,6 +358,7 @@ async fn create_record(
     Json(req): Json<CreateRecord>,
 ) -> Result<(StatusCode, Json<serde_json::Value>), ApiError> {
     let record = Record::Event(EventRecord {
+        submitter_index: req.user_index,
         item_id: req.item_id,
         event_type: req.event_type,
         quantity: req.quantity,
@@ -356,8 +415,10 @@ async fn create_record(
         return Err(internal(format!("wallet-service submit failed: {body}")));
     }
 
+    let org_address = wallet_org_address(&state).await?;
     let hood = under_the_hood(
         &record,
+        &org_address,
         req.user_index as i32,
         &address,
         &worker_name,
@@ -412,7 +473,7 @@ async fn list_records(
                     ar.block_time, ab.name, ab.role, ar.user_index, ar.address,
                     ar.item_id, ar.event_type, ar.quantity, ar.temp_centi, ar.notes
              FROM audit_records ar
-             LEFT JOIN address_book ab ON ab.address = ar.address
+             LEFT JOIN address_book ab ON ab.user_index = ar.user_index
              WHERE ($1::int IS NULL OR ar.user_index = $1)
                AND ($2::text IS NULL OR ar.event_type = $2)
                AND ($3::text IS NULL OR ar.item_id = $3)
@@ -495,7 +556,7 @@ struct AnnotateReq {
 }
 
 async fn annotate_record(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
     Json(req): Json<AnnotateReq>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     let user_index = req.user_index.unwrap_or(0);
@@ -513,6 +574,7 @@ async fn annotate_record(
         let event_type = memo_schema::EventType::from_str(&et)
             .map_err(|e| err(StatusCode::UNPROCESSABLE_ENTITY, e))?;
         Record::Event(memo_schema::EventRecord {
+            submitter_index: user_index as u32,
             item_id,
             event_type,
             quantity: qty,
@@ -524,7 +586,8 @@ async fn annotate_record(
         Record::Enroll(memo_schema::EnrollRecord { name: name.clone(), role: role.clone() })
     };
 
-    let hood = under_the_hood(&record, user_index, &address, &name, &role)?;
+    let org_address = wallet_org_address(&state).await.unwrap_or_default();
+    let hood = under_the_hood(&record, &org_address, user_index, &address, &name, &role)?;
     Ok(Json(hood))
 }
 

@@ -83,6 +83,13 @@ export type UnderTheHood = {
     derivation_path: string;
     address: string;
   };
+  submitter?: {
+    label: string;
+    role: string;
+    derivation_path: string;
+    address: string;
+    user_index: number;
+  };
   payment_json: Record<string, unknown>;
   memo_hex: string;
   memo_spans: MemoSpan[];

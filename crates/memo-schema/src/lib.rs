@@ -130,10 +130,12 @@ impl EventType {
 }
 
 // --- Domain record structs ---
-// EventRecord holds everything a cold-chain worker submits except identity —
-// identity lives in the receiving z-address, deliberately omitted from the memo.
+// EventRecord holds cold-chain event fields plus submitter_index on the wire —
+// outputs land at the org receive address; submitter_index attributes the worker.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct EventRecord {
+    /// ZIP 32 account index of the worker who submitted this event (≥ 1).
+    pub submitter_index: u32,
     pub item_id: String,
     pub event_type: EventType,
     pub quantity: u32,
@@ -182,6 +184,11 @@ impl Record {
             Record::Event(e) => {
                 check_len("item_id", &e.item_id, MAX_ITEM_ID_BYTES)?;
                 check_len("notes", &e.notes, MAX_NOTES_BYTES)?;
+                if e.submitter_index == 0 {
+                    return Err(SchemaError::Malformed(
+                        "submitter_index must be ≥ 1 (0 is org treasury)".into(),
+                    ));
+                }
             }
         }
         Ok(())
@@ -269,15 +276,19 @@ pub fn encode_memo_annotated(
                 encode::write_str(&mut payload, &e.role).map_err(map_err)?
             );
         }
-        // Event layout: [type, item_id, event_type, quantity, temp_centi, client_ts, notes]
+        // Event layout: [type, submitter_index, item_id, event_type, quantity, temp_centi, client_ts, notes]
         Record::Event(e) => {
             field!(
-                "msgpack array header (7 elements)",
-                encode::write_array_len(&mut payload, 7).map_err(map_err)?
+                "msgpack array header (8 elements)",
+                encode::write_array_len(&mut payload, 8).map_err(map_err)?
             );
             field!(
                 "record type tag: 1 = event",
                 encode::write_uint(&mut payload, TYPE_EVENT as u64).map_err(map_err)?
+            );
+            field!(
+                format!("submitter_index: {}", e.submitter_index),
+                encode::write_uint(&mut payload, e.submitter_index as u64).map_err(map_err)?
             );
             field!(
                 format!("item_id: {:?}", e.item_id),
@@ -371,9 +382,11 @@ pub fn decode_memo(bytes: &[u8]) -> Result<Record, SchemaError> {
             Ok(Record::Enroll(EnrollRecord { name, role }))
         }
         TYPE_EVENT => {
-            if len != 7 {
-                return Err(malformed(format!("event array len {len}, expected 7")));
+            if len != 8 {
+                return Err(malformed(format!("event array len {len}, expected 8")));
             }
+            let submitter_index: u32 =
+                decode::read_int(&mut cur).map_err(|e| malformed(format!("{e}")))?;
             let item_id = read_string(&mut cur)?;
             let event_type_raw: u8 =
                 decode::read_int(&mut cur).map_err(|e| malformed(format!("{e}")))?;
@@ -384,6 +397,7 @@ pub fn decode_memo(bytes: &[u8]) -> Result<Record, SchemaError> {
                 decode::read_int(&mut cur).map_err(|e| malformed(format!("{e}")))?;
             let notes = read_string(&mut cur)?;
             Ok(Record::Event(EventRecord {
+                submitter_index,
                 item_id,
                 event_type: EventType::from_u8(event_type_raw)?,
                 quantity,
@@ -416,6 +430,7 @@ mod tests {
     // Construct the largest plausible event to prove the 512-byte budget holds.
     fn worst_case_event() -> Record {
         Record::Event(EventRecord {
+            submitter_index: u32::MAX,
             item_id: "X".repeat(MAX_ITEM_ID_BYTES),
             event_type: EventType::Inspection,
             quantity: u32::MAX,
@@ -428,6 +443,7 @@ mod tests {
     #[test]
     fn event_roundtrip() {
         let rec = Record::Event(EventRecord {
+            submitter_index: 1,
             item_id: "LOT-2026-0042".into(),
             event_type: EventType::Received,
             quantity: 144,
@@ -468,6 +484,7 @@ mod tests {
     #[test]
     fn negative_temp_roundtrip() {
         let rec = Record::Event(EventRecord {
+            submitter_index: 1,
             item_id: "LOT-1".into(),
             event_type: EventType::Inspection,
             quantity: 1,
@@ -482,6 +499,7 @@ mod tests {
     #[test]
     fn oversize_notes_rejected() {
         let rec = Record::Event(EventRecord {
+            submitter_index: 1,
             item_id: "LOT-1".into(),
             event_type: EventType::Received,
             quantity: 1,

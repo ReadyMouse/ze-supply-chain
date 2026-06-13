@@ -105,6 +105,7 @@ pub async fn run_once(wallet_db_path: &str, pg: &Pool) -> Result<usize> {
             Record::Event(e) => {
                 let client_ts = OffsetDateTime::from_unix_timestamp(e.client_ts as i64)
                     .unwrap_or(OffsetDateTime::UNIX_EPOCH);
+                let submitter_index = e.submitter_index as i32;
                 client
                     .execute(
                         "INSERT INTO audit_records
@@ -120,7 +121,7 @@ pub async fn run_once(wallet_db_path: &str, pg: &Pool) -> Result<usize> {
                             &row.height,
                             &row.block_time,
                             &row.address,
-                            &row.user_index.map(|i| i as i32),
+                            &submitter_index,
                             &e.item_id,
                             &e.event_type.as_str(),
                             &(e.quantity as i64),

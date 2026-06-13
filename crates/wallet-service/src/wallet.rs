@@ -425,12 +425,23 @@ impl WalletActor {
     }
 
     async fn send_batch(&mut self, batch: &[QueuedRecord]) -> Result<TxId> {
+        let org_addr = self.ensure_account(0).await?;
         let mut payments = Vec::with_capacity(batch.len());
         for rec in batch {
-            let addr = self.ensure_account(rec.user_index).await?;
-            let zaddr = zcash_address::ZcashAddress::try_from_encoded(&addr)
+            let (recipient_addr, memo_record) = match &rec.record {
+                Record::Enroll(_) => {
+                    let addr = self.ensure_account(rec.user_index).await?;
+                    (addr, rec.record.clone())
+                }
+                Record::Event(e) => {
+                    let mut e = e.clone();
+                    e.submitter_index = rec.user_index;
+                    (org_addr.clone(), Record::Event(e))
+                }
+            };
+            let zaddr = zcash_address::ZcashAddress::try_from_encoded(&recipient_addr)
                 .map_err(|e| anyhow!("address parse: {e}"))?;
-            let memo_bytes = memo_schema::encode_memo(&rec.record)?;
+            let memo_bytes = memo_schema::encode_memo(&memo_record)?;
             let memo = MemoBytes::from_bytes(&memo_bytes).map_err(|e| anyhow!("memo: {e}"))?;
             let payment = Payment::new(
                 zaddr,
